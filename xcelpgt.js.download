@@ -1,0 +1,115 @@
+/** @format */
+
+(function (window) {
+    let modalframesource;
+
+    const message_handlers = {};
+
+    message_handlers.cancelled = function cancelled() {
+        if (window.CKOConfig && window.CKOConfig.onCancel) {
+            window.CKOConfig.onCancel();
+
+            if (modalframesource !== undefined) {
+                document.body.removeChild(modalframesource);
+            }
+        }
+    };
+
+    message_handlers.success = function success() {
+        if (window.CKOConfig && window.CKOConfig.onSuccess) {
+            window.CKOConfig.onSuccess({
+                close: function (redirectUrl) {
+                    setTimeout(() => {
+                        if (modalframesource !== undefined) {
+                            document.body.removeChild(modalframesource);
+                        }
+
+                        if (redirectUrl) {
+                            window.location.href = redirectUrl;
+                        }
+                    }, 2000);
+                },
+            });
+        }
+    };
+
+    const buildQuery = function (data) {
+        // If the data is already a string, return it as-is
+        if (typeof data === "string") return data;
+
+        // Create a query array to hold the key/value pairs
+        const query = [];
+
+        // Loop through the data object
+        for (const key in data) {
+            if (data.hasOwnProperty(key)) {
+                // Encode each key and value, concatenate them into a string, and push them to the array
+                query.push(
+                    encodeURIComponent(key) +
+                        "=" +
+                        encodeURIComponent(data[key])
+                );
+            }
+        }
+        // Join each item in the array with a `&` and return the resulting string
+        return query.join("&");
+    };
+
+    window.startPayment = function loadIFrame() {
+        modalframesource = document.createElement("iframe");
+        modalframesource.setAttribute(
+            "style",
+            "position:fixed;top:0;left:0;z-index:-1;border:none;opacity:0;pointer-events:none;width:100%;height:100%;"
+        );
+        modalframesource.setAttribute("allowTransparency", "true");
+        modalframesource.setAttribute("width", "100%");
+        modalframesource.setAttribute(
+            "allow",
+            "clipboard-write; clipboard-read"
+        );
+        modalframesource.setAttribute("height", "100%");
+        modalframesource.setAttribute("name", "checkout");
+        modalframesource.setAttribute("SameSite", "none");
+
+        document.body.style.overflow = "";
+        modalframesource.style.opacity = "1";
+        modalframesource.style.pointerEvents = "";
+        modalframesource.style.zIndex = "2147483647";
+
+        modalframesource.setAttribute("id", "xcelpgtid");
+        window.CKOConfig = { origin: window.origin, ...window.CKOConfig };
+
+        modalframesource.src =
+            "https://xcel-pos-web-dev-dot-xcel-production.nw.r.appspot.com?" +
+            buildQuery(window.CKOConfig);
+
+        // modalframesource.src =
+        //     "http://localhost:3000?" + buildQuery(window.CKOConfig);
+
+        //xcel-pos-web-dev-dot-xcel-production.nw.r.appspot.com/?origin=https://freedomsark.org&publicKey=XCLPUBK_LIVE-e86a5f433a47bf02dab5645dacfbbdfb62845e5e&amount=0&alpha2CountryCode=GB&currency=GBP&customer={"name":"Victor Umesiobi","email":"victor.umesiobi@etranzactglobal.com"}&description=Giving&reference=11ee3f07-7320-4976-a965-ab0000216776&onlyAllowedPayment=xcel&merchantId=OAASFT7Bm&productIds=[{"product_id":"GOHeJUTFLG","amount":50}]&shouldModifyAmount=false&onCancel=function(){}&onSuccess=function(x){x.close("https://freedomsark.org/");}
+
+        https: if (document.body) {
+            // If iframe already exists on the page, remove it from the body
+            if (document.querySelector("#xcelpgtid")) {
+                document.querySelector("#xcelpgtid").remove();
+            }
+            document.body.appendChild(modalframesource);
+        }
+    };
+
+    window.addEventListener(
+        "message",
+        function (message_data) {
+            if (
+                message_data &&
+                message_data.data &&
+                message_data.data.name &&
+                message_handlers[message_data.data.name]
+            ) {
+
+                message_handlers[message_data.data.name](message_data.data);
+            }
+        },
+        false
+    );
+})(window);
